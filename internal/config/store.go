@@ -57,7 +57,6 @@ func loadConfig() (Config, bool, error) {
 	if err := json.Unmarshal(content, &cfg); err != nil {
 		return Config{}, false, err
 	}
-	cfg.ClearAccountTokens()
 	cfg.DropInvalidAccounts()
 	if IsVercel() {
 		// Vercel filesystem is ephemeral/read-only for runtime writes; avoid save errors.

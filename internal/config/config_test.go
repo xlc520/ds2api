@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/base64"
+	"os"
 	"testing"
 )
 
@@ -47,6 +48,33 @@ func TestLoadStoreDropsLegacyTokenOnlyAccounts(t *testing.T) {
 	}
 	if accounts[0].Token != "" {
 		t.Fatalf("expected persisted token to be cleared, got %q", accounts[0].Token)
+	}
+}
+
+func TestLoadStorePreservesFileBackedTokensForRuntime(t *testing.T) {
+	tmp, err := os.CreateTemp(t.TempDir(), "config-*.json")
+	if err != nil {
+		t.Fatalf("create temp config: %v", err)
+	}
+	defer tmp.Close()
+
+	if _, err := tmp.WriteString(`{
+		"accounts":[{"email":"u@example.com","password":"p","token":"persisted-token"}]
+	}`); err != nil {
+		t.Fatalf("write temp config: %v", err)
+	}
+
+	t.Setenv("DS2API_CONFIG_JSON", "")
+	t.Setenv("CONFIG_JSON", "")
+	t.Setenv("DS2API_CONFIG_PATH", tmp.Name())
+
+	store := LoadStore()
+	accounts := store.Accounts()
+	if len(accounts) != 1 {
+		t.Fatalf("expected 1 account, got %d", len(accounts))
+	}
+	if accounts[0].Token != "persisted-token" {
+		t.Fatalf("expected file-backed token preserved for runtime use, got %q", accounts[0].Token)
 	}
 }
 
