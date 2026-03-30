@@ -264,6 +264,34 @@ test('sieve does not start capture on plain "tool_calls" prose without opening j
   assert.equal(leakedText, '前置。这里提到 tool_calls 只是解释，不是调用。后置。');
 });
 
+test('sieve keeps numbered planning prose before a real tool payload (mobile-chat style)', () => {
+  const events = runSieve(
+    [
+      '好的，我会依次测试每个工具，先把所有工具都调用一遍，然后汇总结果给你看。\n\n1. 获取当前时间\n',
+      '{"tool_calls":[{"name":"get_current_time","input":{}}]}',
+    ],
+    ['get_current_time'],
+  );
+  const leakedText = collectText(events);
+  const finalCalls = events.filter((evt) => evt.type === 'tool_calls').flatMap((evt) => evt.calls || []);
+  assert.equal(finalCalls.length, 1);
+  assert.equal(finalCalls[0].name, 'get_current_time');
+  assert.equal(leakedText.includes('先把所有工具都调用一遍'), true);
+  assert.equal(leakedText.includes('1. 获取当前时间'), true);
+  assert.equal(leakedText.toLowerCase().includes('tool_calls'), false);
+});
+
+test('sieve keeps numbered planning prose when no tool payload follows', () => {
+  const events = runSieve(
+    ['好的，我会依次测试每个工具。\n\n1. 获取当前时间'],
+    ['get_current_time'],
+  );
+  const leakedText = collectText(events);
+  const hasToolCall = events.some((evt) => evt.type === 'tool_calls' && evt.calls?.length > 0);
+  assert.equal(hasToolCall, false);
+  assert.equal(leakedText, '好的，我会依次测试每个工具。\n\n1. 获取当前时间');
+});
+
 test('sieve emits unknown tool payload (no args) as executable tool call', () => {
   const events = runSieve(
     ['{"tool_calls":[{"name":"not_in_schema"}]}', '后置正文G。'],
