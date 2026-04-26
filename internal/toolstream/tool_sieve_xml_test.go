@@ -41,6 +41,37 @@ func TestProcessToolSieveInterceptsXMLToolCallWithoutLeak(t *testing.T) {
 	}
 }
 
+func TestProcessToolSieveInterceptsDSMLToolCallWithoutLeak(t *testing.T) {
+	var state State
+	chunks := []string{
+		"<|DSML|tool",
+		"_calls>\n",
+		`  <|DSML|invoke name="read_file">` + "\n",
+		`    <|DSML|parameter name="path">README.MD</|DSML|parameter>` + "\n",
+		"  </|DSML|invoke>\n",
+		"</|DSML|tool_calls>",
+	}
+	var events []Event
+	for _, c := range chunks {
+		events = append(events, ProcessChunk(&state, c, []string{"read_file"})...)
+	}
+	events = append(events, Flush(&state, []string{"read_file"})...)
+
+	var textContent string
+	var toolCalls int
+	for _, evt := range events {
+		textContent += evt.Content
+		toolCalls += len(evt.ToolCalls)
+	}
+
+	if strings.Contains(strings.ToLower(textContent), "dsml") || strings.Contains(textContent, "read_file") {
+		t.Fatalf("DSML tool call content leaked to text: %q", textContent)
+	}
+	if toolCalls != 1 {
+		t.Fatalf("expected one DSML tool call, got %d events=%#v", toolCalls, events)
+	}
+}
+
 func TestProcessToolSieveHandlesLongXMLToolCall(t *testing.T) {
 	var state State
 	const toolName = "write_to_file"

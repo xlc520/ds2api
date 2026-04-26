@@ -17,7 +17,11 @@ function stripFencedCodeBlocks(text) {
 }
 
 function parseMarkupToolCalls(text) {
-  const raw = toStringSafe(text).trim();
+  const normalized = normalizeDSMLToolCallMarkup(toStringSafe(text));
+  if (!normalized.ok) {
+    return [];
+  }
+  const raw = normalized.text.trim();
   if (!raw) {
     return [];
   }
@@ -30,6 +34,103 @@ function parseMarkupToolCalls(text) {
         out.push(parsed);
       }
     }
+  }
+  return out;
+}
+
+function normalizeDSMLToolCallMarkup(text) {
+  const raw = toStringSafe(text);
+  if (!raw) {
+    return { text: '', ok: true };
+  }
+  const styles = toolMarkupStylesOutsideIgnored(raw);
+  if (styles.dsml && styles.canonical) {
+    return { text: raw, ok: false };
+  }
+  if (!styles.dsml) {
+    return { text: raw, ok: true };
+  }
+  return {
+    text: replaceDSMLToolMarkupOutsideIgnored(raw),
+    ok: true,
+  };
+}
+
+function containsDSMLToolMarkup(text) {
+  return toolMarkupStylesOutsideIgnored(text).dsml;
+}
+
+function containsCanonicalToolMarkup(text) {
+  return toolMarkupStylesOutsideIgnored(text).canonical;
+}
+
+const DSML_TOOL_MARKUP_ALIASES = [
+  { from: '<|dsml|tool_calls', to: '<tool_calls' },
+  { from: '</|dsml|tool_calls>', to: '</tool_calls>' },
+  { from: '<|dsml|invoke', to: '<invoke' },
+  { from: '</|dsml|invoke>', to: '</invoke>' },
+  { from: '<|dsml|parameter', to: '<parameter' },
+  { from: '</|dsml|parameter>', to: '</parameter>' },
+];
+
+const CANONICAL_TOOL_MARKUP_PREFIXES = [
+  '<tool_calls',
+  '</tool_calls>',
+  '<invoke',
+  '</invoke>',
+  '<parameter',
+  '</parameter>',
+];
+
+function toolMarkupStylesOutsideIgnored(text) {
+  const lower = toStringSafe(text).toLowerCase();
+  const styles = { dsml: false, canonical: false };
+  for (let i = 0; i < lower.length;) {
+    const skipped = skipXmlIgnoredSection(lower, i);
+    if (skipped.blocked) {
+      return styles;
+    }
+    if (skipped.advanced) {
+      i = skipped.next;
+      continue;
+    }
+    if (CANONICAL_TOOL_MARKUP_PREFIXES.some(prefix => lower.startsWith(prefix, i))) {
+      styles.canonical = true;
+    }
+    if (DSML_TOOL_MARKUP_ALIASES.some(alias => lower.startsWith(alias.from, i))) {
+      styles.dsml = true;
+    }
+    if (styles.dsml && styles.canonical) {
+      return styles;
+    }
+    i += 1;
+  }
+  return styles;
+}
+
+function replaceDSMLToolMarkupOutsideIgnored(text) {
+  const raw = toStringSafe(text);
+  const lower = raw.toLowerCase();
+  let out = '';
+  for (let i = 0; i < raw.length;) {
+    const skipped = skipXmlIgnoredSection(lower, i);
+    if (skipped.blocked) {
+      out += raw.slice(i);
+      break;
+    }
+    if (skipped.advanced) {
+      out += raw.slice(i, skipped.next);
+      i = skipped.next;
+      continue;
+    }
+    const alias = DSML_TOOL_MARKUP_ALIASES.find(item => lower.startsWith(item.from, i));
+    if (alias) {
+      out += alias.to;
+      i += alias.from.length;
+      continue;
+    }
+    out += raw[i];
+    i += 1;
   }
   return out;
 }
@@ -403,4 +504,5 @@ function isOnlyRawValue(obj) {
 module.exports = {
   stripFencedCodeBlocks,
   parseMarkupToolCalls,
+  normalizeDSMLToolCallMarkup,
 };

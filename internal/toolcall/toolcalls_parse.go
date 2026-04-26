@@ -60,7 +60,11 @@ func parseToolCallsDetailedXMLOnly(text string) ToolCallParseResult {
 		return result
 	}
 
-	parsed := parseXMLToolCalls(trimmed)
+	normalized, ok := normalizeDSMLToolCallMarkup(trimmed)
+	if !ok {
+		return result
+	}
+	parsed := parseXMLToolCalls(normalized)
 	if len(parsed) == 0 {
 		return result
 	}

@@ -3,6 +3,7 @@ const { parseToolCalls } = require('./parse');
 
 // XML wrapper tag pair used by the streaming sieve.
 const XML_TOOL_TAG_PAIRS = [
+  { open: '<|dsml|tool_calls', close: '</|dsml|tool_calls>' },
   { open: '<tool_calls', close: '</tool_calls>' },
 ];
 
@@ -41,6 +42,31 @@ function consumeXMLToolCapture(captured, toolNames, trimWrappingJSONFence) {
     // If this block failed to become a tool call, pass it through as text.
     return { ready: true, prefix: prefixPart + xmlBlock, calls: [], suffix: suffixPart };
   }
+  if (!containsAnyToolCallWrapper(lower)) {
+    const found = firstInvokeIndex(lower);
+    if (found.index >= 0) {
+      const closeTag = found.dsml ? '</|dsml|tool_calls>' : '</tool_calls>';
+      const openWrapper = found.dsml ? '<|DSML|tool_calls>' : '<tool_calls>';
+      const closeIdx = findXMLCloseOutsideCDATA(captured, closeTag, found.index);
+      if (closeIdx > found.index) {
+        const closeEnd = closeIdx + closeTag.length;
+        const xmlBlock = openWrapper + captured.slice(found.index, closeIdx) + closeTag;
+        let prefixPart = captured.slice(0, found.index);
+        let suffixPart = captured.slice(closeEnd);
+        const parsed = parseToolCalls(xmlBlock, toolNames);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const trimmedFence = trimWrappingJSONFence(prefixPart, suffixPart);
+          return {
+            ready: true,
+            prefix: trimmedFence.prefix,
+            calls: parsed,
+            suffix: trimmedFence.suffix,
+          };
+        }
+        return { ready: true, prefix: prefixPart + captured.slice(found.index, closeEnd), calls: [], suffix: suffixPart };
+      }
+    }
+  }
   return { ready: false, prefix: '', calls: [], suffix: '' };
 }
 
@@ -55,6 +81,25 @@ function hasOpenXMLToolTag(captured) {
     }
   }
   return false;
+}
+
+function containsAnyToolCallWrapper(lower) {
+  return lower.includes('<tool_calls') || lower.includes('<|dsml|tool_calls');
+}
+
+function firstInvokeIndex(lower) {
+  const xmlIdx = lower.indexOf('<invoke');
+  const dsmlIdx = lower.indexOf('<|dsml|invoke');
+  if (xmlIdx < 0) {
+    return { index: dsmlIdx, dsml: dsmlIdx >= 0 };
+  }
+  if (dsmlIdx < 0) {
+    return { index: xmlIdx, dsml: false };
+  }
+  if (dsmlIdx < xmlIdx) {
+    return { index: dsmlIdx, dsml: true };
+  }
+  return { index: xmlIdx, dsml: false };
 }
 
 function findPartialXMLToolTagStart(s) {

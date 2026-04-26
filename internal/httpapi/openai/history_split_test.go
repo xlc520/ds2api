@@ -76,7 +76,7 @@ func TestBuildOpenAIHistoryTranscriptUsesInjectedFileWrapper(t *testing.T) {
 	if !strings.Contains(transcript, "[reasoning_content]") || !strings.Contains(transcript, "hidden reasoning") {
 		t.Fatalf("expected reasoning block preserved, got %q", transcript)
 	}
-	if !strings.Contains(transcript, "<tool_calls>") {
+	if !strings.Contains(transcript, "<|DSML|tool_calls>") {
 		t.Fatalf("expected tool calls preserved, got %q", transcript)
 	}
 	if !strings.HasSuffix(transcript, "\n[file name]: IGNORE\n[file content begin]\n") {

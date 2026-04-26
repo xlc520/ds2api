@@ -134,3 +134,7 @@ func filterIncrementalToolCallDeltasByAllowed(deltas []toolstream.ToolCallDelta,
 func formatFinalStreamToolCallsWithStableIDs(calls []toolcall.ParsedToolCall, ids map[int]string) []map[string]any {
 	return shared.FormatFinalStreamToolCallsWithStableIDs(calls, ids)
 }
+
+func detectAssistantToolCalls(text, exposedThinking, detectionThinking string, toolNames []string) toolcall.ToolCallParseResult {
+	return shared.DetectAssistantToolCalls(text, exposedThinking, detectionThinking, toolNames)
+}

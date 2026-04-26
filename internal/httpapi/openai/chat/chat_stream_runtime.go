@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"ds2api/internal/toolcall"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -33,11 +32,12 @@ type chatStreamRuntime struct {
 	toolCallsEmitted     bool
 	toolCallsDoneEmitted bool
 
-	toolSieve         toolstream.State
-	streamToolCallIDs map[int]string
-	streamToolNames   map[int]string
-	thinking          strings.Builder
-	text              strings.Builder
+	toolSieve             toolstream.State
+	streamToolCallIDs     map[int]string
+	streamToolNames       map[int]string
+	thinking              strings.Builder
+	toolDetectionThinking strings.Builder
+	text                  strings.Builder
 
 	finalThinking     string
 	finalText         string
@@ -130,10 +130,11 @@ func (s *chatStreamRuntime) resetStreamToolCallState() {
 
 func (s *chatStreamRuntime) finalize(finishReason string) {
 	finalThinking := s.thinking.String()
+	finalToolDetectionThinking := s.toolDetectionThinking.String()
 	finalText := cleanVisibleOutput(s.text.String(), s.stripReferenceMarkers)
 	s.finalThinking = finalThinking
 	s.finalText = finalText
-	detected := toolcall.ParseAssistantToolCallsDetailed(finalText, finalThinking, s.toolNames)
+	detected := detectAssistantToolCalls(finalText, finalThinking, finalToolDetectionThinking, s.toolNames)
 	if len(detected.Calls) > 0 && !s.toolCallsDoneEmitted {
 		finishReason = "tool_calls"
 		delta := map[string]any{
@@ -238,6 +239,12 @@ func (s *chatStreamRuntime) onParsed(parsed sse.LineResult) streamengine.ParsedD
 
 	newChoices := make([]map[string]any, 0, len(parsed.Parts))
 	contentSeen := false
+	for _, p := range parsed.ToolDetectionThinkingParts {
+		trimmed := sse.TrimContinuationOverlap(s.toolDetectionThinking.String(), p.Text)
+		if trimmed != "" {
+			s.toolDetectionThinking.WriteString(trimmed)
+		}
+	}
 	for _, p := range parsed.Parts {
 		cleanedText := cleanVisibleOutput(p.Text, s.stripReferenceMarkers)
 		if s.searchEnabled && sse.IsCitation(cleanedText) {

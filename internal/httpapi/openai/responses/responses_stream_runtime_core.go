@@ -34,24 +34,25 @@ type responsesStreamRuntime struct {
 	toolCallsEmitted     bool
 	toolCallsDoneEmitted bool
 
-	sieve             toolstream.State
-	thinking          strings.Builder
-	text              strings.Builder
-	visibleText       strings.Builder
-	streamToolCallIDs map[int]string
-	functionItemIDs   map[int]string
-	functionOutputIDs map[int]int
-	functionArgs      map[int]string
-	functionDone      map[int]bool
-	functionAdded     map[int]bool
-	functionNames     map[int]string
-	messageItemID     string
-	messageOutputID   int
-	nextOutputID      int
-	messageAdded      bool
-	messagePartAdded  bool
-	sequence          int
-	failed            bool
+	sieve                 toolstream.State
+	thinking              strings.Builder
+	toolDetectionThinking strings.Builder
+	text                  strings.Builder
+	visibleText           strings.Builder
+	streamToolCallIDs     map[int]string
+	functionItemIDs       map[int]string
+	functionOutputIDs     map[int]int
+	functionArgs          map[int]string
+	functionDone          map[int]bool
+	functionAdded         map[int]bool
+	functionNames         map[int]string
+	messageItemID         string
+	messageOutputID       int
+	nextOutputID          int
+	messageAdded          bool
+	messagePartAdded      bool
+	sequence              int
+	failed                bool
 
 	persistResponse func(obj map[string]any)
 }
@@ -127,13 +128,14 @@ func (s *responsesStreamRuntime) failResponse(status int, message, code string) 
 
 func (s *responsesStreamRuntime) finalize() {
 	finalThinking := s.thinking.String()
+	finalToolDetectionThinking := s.toolDetectionThinking.String()
 	finalText := cleanVisibleOutput(s.text.String(), s.stripReferenceMarkers)
 
 	if s.bufferToolContent {
 		s.processToolStreamEvents(toolstream.Flush(&s.sieve, s.toolNames), true, true)
 	}
 
-	textParsed := toolcall.ParseAssistantToolCallsDetailed(finalText, finalThinking, s.toolNames)
+	textParsed := detectAssistantToolCalls(finalText, finalThinking, finalToolDetectionThinking, s.toolNames)
 	detected := textParsed.Calls
 	s.logToolPolicyRejections(textParsed)
 
@@ -191,6 +193,12 @@ func (s *responsesStreamRuntime) onParsed(parsed sse.LineResult) streamengine.Pa
 	}
 
 	contentSeen := false
+	for _, p := range parsed.ToolDetectionThinkingParts {
+		trimmed := sse.TrimContinuationOverlap(s.toolDetectionThinking.String(), p.Text)
+		if trimmed != "" {
+			s.toolDetectionThinking.WriteString(trimmed)
+		}
+	}
 	for _, p := range parsed.Parts {
 		cleanedText := cleanVisibleOutput(p.Text, s.stripReferenceMarkers)
 		if cleanedText == "" {

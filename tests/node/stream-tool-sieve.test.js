@@ -49,6 +49,29 @@ test('parseToolCalls parses XML markup tool call', () => {
   assert.deepEqual(calls[0].input, { path: 'README.MD' });
 });
 
+test('parseToolCalls parses DSML shell as XML-compatible tool call', () => {
+  const payload = '<|DSML|tool_calls><|DSML|invoke name="read_file"><|DSML|parameter name="path">README.MD</|DSML|parameter></|DSML|invoke></|DSML|tool_calls>';
+  const calls = parseToolCalls(payload, ['read_file']);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].name, 'read_file');
+  assert.deepEqual(calls[0].input, { path: 'README.MD' });
+});
+
+test('parseToolCalls keeps canonical XML examples inside DSML CDATA', () => {
+  const content = '<tool_calls><invoke name="demo"><parameter name="value">x</parameter></invoke></tool_calls>';
+  const payload = `<|DSML|tool_calls><|DSML|invoke name="write_file"><|DSML|parameter name="path">notes.md</|DSML|parameter><|DSML|parameter name="content"><![CDATA[${content}]]></|DSML|parameter></|DSML|invoke></|DSML|tool_calls>`;
+  const calls = parseToolCalls(payload, ['write_file']);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].name, 'write_file');
+  assert.deepEqual(calls[0].input, { path: 'notes.md', content });
+});
+
+test('parseToolCalls rejects mixed DSML and XML tool tags', () => {
+  const payload = '<|DSML|tool_calls><invoke name="read_file"><|DSML|parameter name="path">README.MD</|DSML|parameter></invoke></|DSML|tool_calls>';
+  const calls = parseToolCalls(payload, ['read_file']);
+  assert.equal(calls.length, 0);
+});
+
 test('parseToolCalls ignores JSON tool_calls payload (XML-only)', () => {
   const payload = JSON.stringify({
     tool_calls: [{ name: 'read_file', input: { path: 'README.MD' } }],
@@ -94,6 +117,22 @@ test('sieve emits tool_calls when XML tag spans multiple chunks', () => {
     ['read_file'],
   );
   const finalCalls = events.filter((evt) => evt.type === 'tool_calls').flatMap((evt) => evt.calls || []);
+  assert.equal(finalCalls.length, 1);
+  assert.equal(finalCalls[0].name, 'read_file');
+});
+
+test('sieve emits tool_calls when DSML tag spans multiple chunks', () => {
+  const events = runSieve(
+    [
+      '<|DSML|tool',
+      '_calls><|DSML|invoke name="read_file">',
+      '<|DSML|parameter name="path">README.MD</|DSML|parameter></|DSML|invoke></|DSML|tool_calls>',
+    ],
+    ['read_file'],
+  );
+  const leakedText = collectText(events);
+  const finalCalls = events.filter((evt) => evt.type === 'tool_calls').flatMap((evt) => evt.calls || []);
+  assert.equal(leakedText, '');
   assert.equal(finalCalls.length, 1);
   assert.equal(finalCalls[0].name, 'read_file');
 });
