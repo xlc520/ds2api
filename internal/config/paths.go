@@ -30,7 +30,20 @@ func ResolvePath(envKey, defaultRel string) string {
 }
 
 func ConfigPath() string {
+	if strings.TrimSpace(os.Getenv("DS2API_CONFIG_PATH")) == "" && BaseDir() == "/app" {
+		// Official container images commonly run from /app where filesystem may be read-only.
+		// Prefer /data default so deployments can persist config/token state by mounting a volume.
+		return "/data/config.json"
+	}
 	return ResolvePath("DS2API_CONFIG_PATH", "config.json")
+}
+
+func legacyContainerConfigPath() string {
+	return "/app/config.json"
+}
+
+func shouldTryLegacyContainerConfigPath() bool {
+	return strings.TrimSpace(os.Getenv("DS2API_CONFIG_PATH")) == "" && BaseDir() == "/app"
 }
 
 func RawStreamSampleRoot() string {

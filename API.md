@@ -934,11 +934,14 @@ data: {"type":"message_stop"}
   "message": "API 测试成功（仅会话创建）",
   "model": "deepseek-v4-flash",
   "session_count": 0,
-  "config_writable": true
+  "config_writable": true,
+  "config_warning": ""
 }
 ```
 
 如果传入 `message`，还会附带 `thinking`（当上游返回思考内容时）。
+
+当部署环境配置文件路径不可写（例如容器内默认 `/app/config.json` 只读）时，登录与会话测试仍可继续；此时会返回 `config_warning` 提示 token 仅保存在内存、重启后丢失。
 
 ### `POST /admin/accounts/test-all`
 

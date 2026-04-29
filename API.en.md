@@ -917,11 +917,14 @@ Updates proxy binding for a specific account.
   "message": "API test successful (session creation only)",
   "model": "deepseek-v4-flash",
   "session_count": 0,
-  "config_writable": true
+  "config_writable": true,
+  "config_warning": ""
 }
 ```
 
 If a `message` is provided, `thinking` may also be included when the upstream response carries reasoning text.
+
+When the configured file path is not writable (for example, read-only `/app/config.json` inside some containers), login/session testing still proceeds; `config_warning` is returned to indicate token persistence failed and the token is memory-only until restart.
 
 ### `POST /admin/accounts/test-all`
 
