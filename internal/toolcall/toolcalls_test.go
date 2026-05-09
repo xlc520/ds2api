@@ -72,6 +72,45 @@ EOF
 	}
 }
 
+func TestParseToolCallsSupportsUnderscoredDSMLShell(t *testing.T) {
+	text := `<dsml_tool_calls>
+<dsml_invoke name="search_web">
+<dsml_parameter name="query"><![CDATA[2026年5月 热点事件]]></dsml_parameter>
+<dsml_parameter name="topic"><![CDATA[news]]></dsml_parameter>
+</dsml_invoke>
+<dsml_invoke name="eval_javascript">
+<dsml_parameter name="code"><![CDATA[1 + 1]]></dsml_parameter>
+</dsml_invoke>
+</dsml_tool_calls>`
+	calls := ParseToolCalls(text, []string{"search_web", "eval_javascript"})
+	if len(calls) != 2 {
+		t.Fatalf("expected two underscored DSML calls, got %#v", calls)
+	}
+	if calls[0].Name != "search_web" || calls[0].Input["query"] != "2026年5月 热点事件" || calls[0].Input["topic"] != "news" {
+		t.Fatalf("unexpected first underscored DSML call: %#v", calls[0])
+	}
+	if calls[1].Name != "eval_javascript" || calls[1].Input["code"] != "1 + 1" {
+		t.Fatalf("unexpected second underscored DSML call: %#v", calls[1])
+	}
+}
+
+func TestParseToolCallsSupportsArbitraryPrefixedToolMarkup(t *testing.T) {
+	cases := []string{
+		`<abc|tool_calls><abc|invoke name="Read"><abc|parameter name="file_path">README.md</abc|parameter></abc|invoke></abc|tool_calls>`,
+		`<vendor_tool_calls><vendor_invoke name="Read"><vendor_parameter name="file_path">README.md</vendor_parameter></vendor_invoke></vendor_tool_calls>`,
+		`<agent - tool_calls><agent - invoke name="Read"><agent - parameter name="file_path">README.md</agent - parameter></agent - invoke></agent - tool_calls>`,
+	}
+	for _, text := range cases {
+		calls := ParseToolCalls(text, []string{"Read"})
+		if len(calls) != 1 {
+			t.Fatalf("expected one arbitrary-prefixed tool call for %q, got %#v", text, calls)
+		}
+		if calls[0].Name != "Read" || calls[0].Input["file_path"] != "README.md" {
+			t.Fatalf("unexpected arbitrary-prefixed parse result: %#v", calls[0])
+		}
+	}
+}
+
 func TestParseToolCallsIgnoresBareHyphenatedToolCallsLookalike(t *testing.T) {
 	text := `<tool-calls><invoke name="Bash"><parameter name="command">pwd</parameter></invoke></tool-calls>`
 	calls := ParseToolCalls(text, []string{"Bash"})

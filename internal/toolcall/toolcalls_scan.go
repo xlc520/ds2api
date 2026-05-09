@@ -242,7 +242,45 @@ func consumeToolMarkupNamePrefixOnce(text string, idx int) (int, bool) {
 		}
 		return next, true
 	}
+	if next, ok := consumeArbitraryToolMarkupNamePrefix(text, idx); ok {
+		return next, true
+	}
 	return idx, false
+}
+
+func consumeArbitraryToolMarkupNamePrefix(text string, idx int) (int, bool) {
+	if idx < 0 || idx >= len(text) || !isToolMarkupPrefixSegmentByte(text[idx]) {
+		return idx, false
+	}
+	j := idx + 1
+	for j < len(text) && isToolMarkupPrefixSegmentByte(text[j]) {
+		j++
+	}
+	k := j
+	for k < len(text) && (text[k] == ' ' || text[k] == '\t' || text[k] == '\r' || text[k] == '\n') {
+		k++
+	}
+	next, ok := consumeToolMarkupPipe(text, k)
+	if !ok {
+		if k < len(text) && (text[k] == '_' || text[k] == '-') {
+			next = k + 1
+			ok = true
+		}
+	}
+	if !ok {
+		return idx, false
+	}
+	for next < len(text) && (text[next] == ' ' || text[next] == '\t' || text[next] == '\r' || text[next] == '\n') {
+		next++
+	}
+	if !hasToolMarkupNamePrefix(text, next) {
+		return idx, false
+	}
+	return next, true
+}
+
+func isToolMarkupPrefixSegmentByte(b byte) bool {
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
 
 func hasASCIIPartialPrefixFoldAt(text string, start int, prefix string) bool {

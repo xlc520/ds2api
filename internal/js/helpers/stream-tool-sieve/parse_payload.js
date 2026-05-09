@@ -616,12 +616,53 @@ function consumeToolMarkupNamePrefixOnce(raw, lower, idx) {
   }
   if (lower.startsWith('dsml', idx)) {
     let next = idx + 'dsml'.length;
-    if (next < raw.length && raw[next] === '-') {
+    if (next < raw.length && (raw[next] === '-' || raw[next] === '_')) {
       next += 1;
     }
     return { next, ok: true };
   }
+  const arbitrary = consumeArbitraryToolMarkupNamePrefix(raw, lower, idx);
+  if (arbitrary.ok) {
+    return arbitrary;
+  }
   return { next: idx, ok: false };
+}
+
+function consumeArbitraryToolMarkupNamePrefix(raw, lower, idx) {
+  if (idx < 0 || idx >= raw.length || !isToolMarkupPrefixSegmentChar(raw[idx])) {
+    return { next: idx, ok: false };
+  }
+  let j = idx + 1;
+  while (j < raw.length && isToolMarkupPrefixSegmentChar(raw[j])) {
+    j += 1;
+  }
+  let k = j;
+  while (k < raw.length && [' ', '\t', '\r', '\n'].includes(raw[k])) {
+    k += 1;
+  }
+  let next = k;
+  let ok = false;
+  if (next < raw.length && isToolMarkupPipe(raw[next])) {
+    next += 1;
+    ok = true;
+  } else if (next < raw.length && (raw[next] === '_' || raw[next] === '-')) {
+    next += 1;
+    ok = true;
+  }
+  if (!ok) {
+    return { next: idx, ok: false };
+  }
+  while (next < raw.length && [' ', '\t', '\r', '\n'].includes(raw[next])) {
+    next += 1;
+  }
+  if (!hasToolMarkupNamePrefix(lower.slice(next))) {
+    return { next: idx, ok: false };
+  }
+  return { next, ok: true };
+}
+
+function isToolMarkupPrefixSegmentChar(ch) {
+  return /^[A-Za-z0-9]$/.test(ch);
 }
 
 function hasToolMarkupNamePrefix(lowerTail) {

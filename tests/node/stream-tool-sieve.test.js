@@ -80,6 +80,38 @@ EOF
   assert.equal(calls[0].input.command.includes('Co-Authored-By: Claude Opus 4.7'), true);
 });
 
+test('parseToolCalls parses underscored DSML shell (Vercel parity)', () => {
+  const payload = `<dsml_tool_calls>
+<dsml_invoke name="search_web">
+<dsml_parameter name="query"><![CDATA[2026年5月 热点事件]]></dsml_parameter>
+<dsml_parameter name="topic"><![CDATA[news]]></dsml_parameter>
+</dsml_invoke>
+<dsml_invoke name="eval_javascript">
+<dsml_parameter name="code"><![CDATA[1 + 1]]></dsml_parameter>
+</dsml_invoke>
+</dsml_tool_calls>`;
+  const calls = parseToolCalls(payload, ['search_web', 'eval_javascript']);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].name, 'search_web');
+  assert.deepEqual(calls[0].input, { query: '2026年5月 热点事件', topic: 'news' });
+  assert.equal(calls[1].name, 'eval_javascript');
+  assert.deepEqual(calls[1].input, { code: '1 + 1' });
+});
+
+test('parseToolCalls parses arbitrary-prefixed tool markup shells', () => {
+  const samples = [
+    '<abc|tool_calls><abc|invoke name="Read"><abc|parameter name="file_path">README.md</abc|parameter></abc|invoke></abc|tool_calls>',
+    '<vendor_tool_calls><vendor_invoke name="Read"><vendor_parameter name="file_path">README.md</vendor_parameter></vendor_invoke></vendor_tool_calls>',
+    '<agent - tool_calls><agent - invoke name="Read"><agent - parameter name="file_path">README.md</agent - parameter></agent - invoke></agent - tool_calls>',
+  ];
+  for (const payload of samples) {
+    const calls = parseToolCalls(payload, ['Read']);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, 'Read');
+    assert.deepEqual(calls[0].input, { file_path: 'README.md' });
+  }
+});
+
 test('parseToolCalls ignores bare hyphenated tool_calls lookalike', () => {
   const payload = '<tool-calls><invoke name="Bash"><parameter name="command">pwd</parameter></invoke></tool-calls>';
   const calls = parseToolCalls(payload, ['Bash']);
