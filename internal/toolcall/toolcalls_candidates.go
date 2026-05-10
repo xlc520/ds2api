@@ -491,8 +491,6 @@ func consumeToolMarkupPipe(text string, idx int) (int, bool) {
 	switch {
 	case text[idx] == '|':
 		return idx + 1, true
-	case strings.HasPrefix(text[idx:], "｜"):
-		return idx + len("｜"), true
 	case strings.HasPrefix(text[idx:], "│"):
 		return idx + len("│"), true
 	case strings.HasPrefix(text[idx:], "∣"):

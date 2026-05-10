@@ -141,6 +141,71 @@ func TestHandleVercelStreamPrepareAppliesCurrentInputFile(t *testing.T) {
 	}
 }
 
+func TestHandleVercelStreamPrepareUsesHalfwidthDSMLToolPrompt(t *testing.T) {
+	t.Setenv("VERCEL", "1")
+	t.Setenv("DS2API_VERCEL_INTERNAL_SECRET", "stream-secret")
+
+	h := &Handler{
+		Store: mockOpenAIConfig{},
+		Auth:  streamStatusAuthStub{},
+		DS:    &inlineUploadDSStub{},
+	}
+
+	reqBody, _ := json.Marshal(map[string]any{
+		"model": "deepseek-v4-flash",
+		"messages": []any{
+			map[string]any{"role": "user", "content": "search docs"},
+		},
+		"tools": []any{
+			map[string]any{
+				"type": "function",
+				"function": map[string]any{
+					"name":        "search",
+					"description": "search docs",
+					"parameters": map[string]any{
+						"type": "object",
+						"properties": map[string]any{
+							"query": map[string]any{"type": "string"},
+						},
+						"required": []any{"query"},
+					},
+				},
+			},
+		},
+		"stream": true,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions?__stream_prepare=1", strings.NewReader(string(reqBody)))
+	req.Header.Set("Authorization", "Bearer direct-token")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Ds2-Internal-Token", "stream-secret")
+	rec := httptest.NewRecorder()
+
+	h.handleVercelStreamPrepare(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode failed: %v", err)
+	}
+	finalPrompt, _ := body["final_prompt"].(string)
+	payload, _ := body["payload"].(map[string]any)
+	payloadPrompt, _ := payload["prompt"].(string)
+	for label, promptText := range map[string]string{"final_prompt": finalPrompt, "payload.prompt": payloadPrompt} {
+		if !strings.Contains(promptText, "<|DSML|tool_calls>") || !strings.Contains(promptText, "Tag punctuation alphabet: ASCII < > / = \" plus the halfwidth pipe |.") {
+			t.Fatalf("expected %s to contain halfwidth DSML tool instructions, got %q", label, promptText)
+		}
+		if strings.Contains(promptText, "\uff5c") || strings.Contains(promptText, "full"+"width vertical bar") {
+			t.Fatalf("expected %s not to contain legacy pipe guidance, got %q", label, promptText)
+		}
+	}
+	toolNames, _ := body["tool_names"].([]any)
+	if len(toolNames) != 1 || toolNames[0] != "search" {
+		t.Fatalf("expected prepared tool names to align with request tools, got %#v", body["tool_names"])
+	}
+}
+
 func TestHandleVercelStreamPrepareMapsCurrentInputFileManagedAuthFailureTo401(t *testing.T) {
 	t.Setenv("VERCEL", "1")
 	t.Setenv("DS2API_VERCEL_INTERNAL_SECRET", "stream-secret")

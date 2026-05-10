@@ -1356,7 +1356,7 @@ function consumeToolMarkupPipe(raw, idx) {
   if (pos >= raw.length) {
     return { next: idx, ok: false };
   }
-  for (const variant of ['|', '｜', '│', '∣', '❘', 'ǀ', '￨']) {
+  for (const variant of ['|', '│', '∣', '❘', 'ǀ', '￨']) {
     if (raw.startsWith(variant, pos)) {
       return { next: pos + variant.length, ok: true };
     }

@@ -58,7 +58,7 @@ test('parseToolCalls parses DSML shell as XML-compatible tool call', () => {
 });
 
 test('parseToolCalls tolerates fullwidth closing slash in DSML wrapper', () => {
-  const payload = '<｜DSML｜tool_calls><｜DSML｜invoke name="execute_code"><｜DSML｜parameter name="code"><![CDATA[print("hi")]]></｜DSML｜parameter></｜DSML｜invoke><／DSML｜tool_calls>';
+  const payload = '<|DSML|tool_calls><|DSML|invoke name="execute_code"><|DSML|parameter name="code"><![CDATA[print("hi")]]></|DSML|parameter></|DSML|invoke><／DSML|tool_calls>';
   const calls = parseToolCalls(payload, ['execute_code']);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].name, 'execute_code');
@@ -66,7 +66,7 @@ test('parseToolCalls tolerates fullwidth closing slash in DSML wrapper', () => {
 });
 
 test('parseToolCalls tolerates sentencepiece separator and fullwidth terminator', () => {
-  const payload = '<｜DSML▁tool_calls｜><｜DSML▁invoke▁name="execute_code"><｜DSML▁parameter▁name="code"><![CDATA[print("hi")]]></｜DSML▁parameter></｜DSML▁invoke></｜DSML▁tool_calls＞';
+  const payload = '<|DSML▁tool_calls|><|DSML▁invoke▁name="execute_code"><|DSML▁parameter▁name="code"><![CDATA[print("hi")]]></|DSML▁parameter></|DSML▁invoke></|DSML▁tool_calls＞';
   const calls = parseToolCalls(payload, ['execute_code']);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].name, 'execute_code');
@@ -74,7 +74,7 @@ test('parseToolCalls tolerates sentencepiece separator and fullwidth terminator'
 });
 
 test('parseToolCalls tolerates fullwidth opening delimiter and Unicode attribute confusables', () => {
-  const payload = '＜｜DSML　tool_calls＞＜｜DSML　invoke　name＝“execute_code”＞＜｜DSML　parameter　name＝“code”＞<![CDATA[print("hi")]]>＜／DSML｜parameter＞＜／DSML｜invoke＞＜／DSML｜tool_calls＞';
+  const payload = '＜|DSML　tool_calls＞＜|DSML　invoke　name＝“execute_code”＞＜|DSML　parameter　name＝“code”＞<![CDATA[print("hi")]]>＜／DSML|parameter＞＜／DSML|invoke＞＜／DSML|tool_calls＞';
   const calls = parseToolCalls(payload, ['execute_code']);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].name, 'execute_code');
@@ -162,14 +162,14 @@ test('parseToolCalls ignores camel-prefixed tool markup lookalike', () => {
 });
 
 test('parseToolCalls parses fullwidth DSML shell drift', () => {
-  const payload = `<ｄＳＭＬ｜tool_calls>
-  <ｄＳＭＬ｜invoke name="Read">
-    <ｄＳＭＬ｜parameter name="file_path"＞<![CDATA[/Users/aq/Desktop/myproject/Personal_Blog/README.md]]＞</ｄＳＭＬ｜parameter>
-  </ｄＳＭＬ｜invoke>
-  <ｄＳＭＬ｜invoke name="Read">
-    <ｄＳＭＬ｜parameter name="file_path"＞<![CDATA[/Users/aq/Desktop/myproject/Personal_Blog/index.html]]＞</ｄＳＭＬ｜parameter>
-  </ｄＳＭＬ｜invoke>
-</ｄＳＭＬ｜tool_calls>`;
+  const payload = `<ｄＳＭＬ|tool_calls>
+  <ｄＳＭＬ|invoke name="Read">
+    <ｄＳＭＬ|parameter name="file_path"＞<![CDATA[/Users/aq/Desktop/myproject/Personal_Blog/README.md]]＞</ｄＳＭＬ|parameter>
+  </ｄＳＭＬ|invoke>
+  <ｄＳＭＬ|invoke name="Read">
+    <ｄＳＭＬ|parameter name="file_path"＞<![CDATA[/Users/aq/Desktop/myproject/Personal_Blog/index.html]]＞</ｄＳＭＬ|parameter>
+  </ｄＳＭＬ|invoke>
+</ｄＳＭＬ|tool_calls>`;
   const calls = parseToolCalls(payload, ['Read']);
   assert.equal(calls.length, 2);
   assert.equal(calls[0].name, 'Read');
@@ -179,20 +179,20 @@ test('parseToolCalls parses fullwidth DSML shell drift', () => {
 });
 
 test('parseToolCalls parses CJK-angle DSM drift', () => {
-  const payload = `<DSM｜tool_calls>
-<DSM｜invoke name="Bash">
-<DSM｜parameter name="description"｜>〈![CDATA[Show commits on local dev not on origin/dev]]〉〈/DSM｜parameter〉
-<DSM｜parameter name="command"｜>〈![CDATA[git log --oneline origin/dev..dev]]〉〈/DSM｜parameter〉
-〈/DSM｜invoke〉
-<DSM｜invoke name="Bash">
-<DSM｜parameter name="description"｜>〈![CDATA[Show commits on origin/dev not on local dev]]〉〈/DSM｜parameter〉
-<DSM｜parameter name="command"｜>〈![CDATA[git log --oneline dev..origin/dev]]〉〈/DSM｜parameter〉
-〈/DSM｜invoke〉
-<DSM｜invoke name="Bash">
-<DSM｜parameter name="description"｜>〈![CDATA[Check tracking branch status]]〉〈/DSM｜parameter〉
-<DSM｜parameter name="command"｜>〈![CDATA[git status -b --short]]〉〈/DSM｜parameter〉
-〈/DSM｜invoke〉
-〈/DSM｜tool_calls〉`;
+  const payload = `<DSM|tool_calls>
+<DSM|invoke name="Bash">
+<DSM|parameter name="description"|>〈![CDATA[Show commits on local dev not on origin/dev]]〉〈/DSM|parameter〉
+<DSM|parameter name="command"|>〈![CDATA[git log --oneline origin/dev..dev]]〉〈/DSM|parameter〉
+〈/DSM|invoke〉
+<DSM|invoke name="Bash">
+<DSM|parameter name="description"|>〈![CDATA[Show commits on origin/dev not on local dev]]〉〈/DSM|parameter〉
+<DSM|parameter name="command"|>〈![CDATA[git log --oneline dev..origin/dev]]〉〈/DSM|parameter〉
+〈/DSM|invoke〉
+<DSM|invoke name="Bash">
+<DSM|parameter name="description"|>〈![CDATA[Check tracking branch status]]〉〈/DSM|parameter〉
+<DSM|parameter name="command"|>〈![CDATA[git status -b --short]]〉〈/DSM|parameter〉
+〈/DSM|invoke〉
+〈/DSM|tool_calls〉`;
   const calls = parseToolCalls(payload, ['Bash']);
   assert.equal(calls.length, 3);
   assert.equal(calls[0].name, 'Bash');
@@ -262,13 +262,13 @@ test('parseToolCalls parses arbitrary-prefixed tool tags', () => {
 });
 
 test('parseToolCalls allows all-empty parameter payloads', () => {
-  const payload = `<T｜DSML｜tool_calls>
-  <T｜DSML｜invoke name="TaskOutput">
-    <T｜DSML｜parameter name="task_id"></T｜DSML｜parameter>
-    <T｜DSML｜parameter name="block"></T｜DSML｜parameter>
-    <T｜DSML｜parameter name="timeout"></T｜DSML｜parameter>
-  </T｜DSML｜invoke>
-</T｜DSML｜tool_calls>`;
+  const payload = `<T|DSML|tool_calls>
+  <T|DSML|invoke name="TaskOutput">
+    <T|DSML|parameter name="task_id"></T|DSML|parameter>
+    <T|DSML|parameter name="block"></T|DSML|parameter>
+    <T|DSML|parameter name="timeout"></T|DSML|parameter>
+  </T|DSML|invoke>
+</T|DSML|tool_calls>`;
   const calls = parseToolCalls(payload, ['TaskOutput']);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].name, 'TaskOutput');
@@ -603,7 +603,7 @@ test('sieve emits tool_calls for DSML space-separator typo', () => {
 });
 
 test('sieve emits tool_calls for fullwidth closing slash and preserves suffix text', () => {
-  const input = '<｜DSML｜tool_calls><｜DSML｜invoke name="execute_code"><｜DSML｜parameter name="code"><![CDATA[print("hi")]]></｜DSML｜parameter></｜DSML｜invoke><／DSML｜tool_calls> sao cụm này lại đc trả là 1 message';
+  const input = '<|DSML|tool_calls><|DSML|invoke name="execute_code"><|DSML|parameter name="code"><![CDATA[print("hi")]]></|DSML|parameter></|DSML|invoke><／DSML|tool_calls> sao cụm này lại đc trả là 1 message';
   const events = runSieve([input], ['execute_code']);
   const text = collectText(events);
   const finalCalls = events.filter((evt) => evt.type === 'tool_calls').flatMap((evt) => evt.calls || []);
@@ -614,7 +614,7 @@ test('sieve emits tool_calls for fullwidth closing slash and preserves suffix te
 });
 
 test('sieve emits tool_calls for sentencepiece separator and fullwidth terminator', () => {
-  const input = '<｜DSML▁tool_calls｜><｜DSML▁invoke▁name="execute_code"><｜DSML▁parameter▁name="code"><![CDATA[print("hi")]]></｜DSML▁parameter></｜DSML▁invoke></｜DSML▁tool_calls＞ suffix';
+  const input = '<|DSML▁tool_calls|><|DSML▁invoke▁name="execute_code"><|DSML▁parameter▁name="code"><![CDATA[print("hi")]]></|DSML▁parameter></|DSML▁invoke></|DSML▁tool_calls＞ suffix';
   const events = runSieve([input], ['execute_code']);
   const text = collectText(events);
   const finalCalls = events.filter((evt) => evt.type === 'tool_calls').flatMap((evt) => evt.calls || []);
@@ -625,7 +625,7 @@ test('sieve emits tool_calls for sentencepiece separator and fullwidth terminato
 });
 
 test('sieve emits tool_calls for fullwidth opening delimiter and Unicode attribute confusables', () => {
-  const input = '＜｜DSML　tool_calls＞＜｜DSML　invoke　name＝“execute_code”＞＜｜DSML　parameter　name＝“code”＞<![CDATA[print("hi")]]>＜／DSML｜parameter＞＜／DSML｜invoke＞＜／DSML｜tool_calls＞ suffix';
+  const input = '＜|DSML　tool_calls＞＜|DSML　invoke　name＝“execute_code”＞＜|DSML　parameter　name＝“code”＞<![CDATA[print("hi")]]>＜／DSML|parameter＞＜／DSML|invoke＞＜／DSML|tool_calls＞ suffix';
   const events = runSieve([input], ['execute_code']);
   const text = collectText(events);
   const finalCalls = events.filter((evt) => evt.type === 'tool_calls').flatMap((evt) => evt.calls || []);
@@ -718,12 +718,12 @@ test('sieve emits tool_calls for arbitrary-prefixed tool tags', () => {
 
 test('sieve emits tool_calls for CJK-angle DSM drift', () => {
   const events = runSieve([
-    '<DSM｜tool_calls>\n',
-    '<DSM｜invoke name="Bash">\n',
-    '<DSM｜parameter name="description"｜>〈![CDATA[Check tracking branch status]]〉〈/DSM｜parameter〉\n',
-    '<DSM｜parameter name="command"｜>〈![CDATA[git status -b --short]]〉〈/DSM｜parameter〉\n',
-    '〈/DSM｜invoke〉\n',
-    '〈/DSM｜tool_calls〉',
+    '<DSM|tool_calls>\n',
+    '<DSM|invoke name="Bash">\n',
+    '<DSM|parameter name="description"|>〈![CDATA[Check tracking branch status]]〉〈/DSM|parameter〉\n',
+    '<DSM|parameter name="command"|>〈![CDATA[git status -b --short]]〉〈/DSM|parameter〉\n',
+    '〈/DSM|invoke〉\n',
+    '〈/DSM|tool_calls〉',
   ], ['Bash']);
   const finalCalls = events.flatMap((evt) => (evt.type === 'tool_calls' ? evt.calls : []));
   assert.equal(finalCalls.length, 1);
@@ -770,13 +770,13 @@ test('sieve emits tool_calls for ideographic-comma DSML drift', () => {
 
 test('sieve emits all-empty arbitrary-prefixed tool tags without leaking text', () => {
   const payload = [
-    '<T｜DSML｜tool_calls>\n',
-    '  <T｜DSML｜invoke name="TaskOutput">\n',
-    '    <T｜DSML｜parameter name="task_id"></T｜DSML｜parameter>\n',
-    '    <T｜DSML｜parameter name="block"></T｜DSML｜parameter>\n',
-    '    <T｜DSML｜parameter name="timeout"></T｜DSML｜parameter>\n',
-    '  </T｜DSML｜invoke>\n',
-    '</T｜DSML｜tool_calls>',
+    '<T|DSML|tool_calls>\n',
+    '  <T|DSML|invoke name="TaskOutput">\n',
+    '    <T|DSML|parameter name="task_id"></T|DSML|parameter>\n',
+    '    <T|DSML|parameter name="block"></T|DSML|parameter>\n',
+    '    <T|DSML|parameter name="timeout"></T|DSML|parameter>\n',
+    '  </T|DSML|invoke>\n',
+    '</T|DSML|tool_calls>',
   ].join('');
   for (const chunks of [[payload], payload.match(/.{1,8}/gs)]) {
     const events = runSieve(chunks, ['TaskOutput']);
@@ -859,14 +859,14 @@ test('sieve preserves review body with alias mentions before real DSML tool call
   const events = runSieve([
     "Done reviewing the diff. Here's my analysis before we commit:\n\n",
     'Summary of Changes\n',
-    'DSML wrapper variant support — recognize aliases (<dsml|tool_calls>, <|tool_calls>, <｜tool_calls>) alongside canonical <tool_calls> and <|DSML|tool_calls> wrappers.\n\n',
+    'DSML wrapper variant support — recognize aliases (<dsml|tool_calls>, <|tool_calls>) alongside canonical <tool_calls> and <|DSML|tool_calls> wrappers.\n\n',
     '<|DSML|tool_calls>\n',
     '<|DSML|invoke name="Bash">\n',
     '<|DSML|parameter name="command"><![CDATA[git add docs/toolcall-semantics.md internal/toolstream/tool_sieve_xml.go]]></|DSML|parameter>\n',
     '<|DSML|parameter name="description"><![CDATA[Stage all relevant changed files]]></|DSML|parameter>\n',
     '</|DSML|invoke>\n',
     '<|DSML|invoke name="Bash">\n',
-    '<|DSML|parameter name="command"><![CDATA[git commit -m "$(cat <<\'EOF\'\nfeat(toolstream): expand DSML wrapper detection\n\nSupport DSML wrapper aliases: <dsml|tool_calls>, <|tool_calls>, <｜tool_calls> alongside existing canonical wrappers.\nEOF\n)"]]></|DSML|parameter>\n',
+    '<|DSML|parameter name="command"><![CDATA[git commit -m "$(cat <<\'EOF\'\nfeat(toolstream): expand DSML wrapper detection\n\nSupport DSML wrapper aliases: <dsml|tool_calls> and <|tool_calls> alongside existing canonical wrappers.\nEOF\n)"]]></|DSML|parameter>\n',
     '<|DSML|parameter name="description"><![CDATA[Create commit with all staged changes]]></|DSML|parameter>\n',
     '</|DSML|invoke>\n',
     '</|DSML|tool_calls>',
@@ -993,7 +993,7 @@ test('sieve emits tool_calls when DSML tag spans multiple chunks', () => {
 test('sieve emits tool_calls when fullwidth DSML prefix variant spans multiple chunks', () => {
   const events = runSieve(
     [
-      '<｜DSML|tool',
+      '<|DSML|tool',
       '_calls>\n',
       '<|DSML|invoke name="Bash">\n',
       '<|DSML|parameter name="command"><![CDATA[ls -la /Users/aq/Desktop/myproject/ds2api/]]></|DSML|parameter>\n',

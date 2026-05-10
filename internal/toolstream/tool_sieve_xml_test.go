@@ -626,13 +626,13 @@ func TestProcessToolSieveEmitsAllEmptyDSMLToolBlock(t *testing.T) {
 
 func TestProcessToolSieveEmitsChunkedAllEmptyArbitraryPrefixedToolBlock(t *testing.T) {
 	chunk := strings.Join([]string{
-		`<T｜DSML｜tool_calls>`,
-		`  <T｜DSML｜invoke name="TaskOutput">`,
-		`  <T｜DSML｜parameter name="task_id"></T｜DSML｜parameter>`,
-		`  <T｜DSML｜parameter name="block"></T｜DSML｜parameter>`,
-		`  <T｜DSML｜parameter name="timeout"></T｜DSML｜parameter>`,
-		`  </T｜DSML｜invoke>`,
-		`  </T｜DSML｜tool_calls>`,
+		`<T|DSML|tool_calls>`,
+		`  <T|DSML|invoke name="TaskOutput">`,
+		`  <T|DSML|parameter name="task_id"></T|DSML|parameter>`,
+		`  <T|DSML|parameter name="block"></T|DSML|parameter>`,
+		`  <T|DSML|parameter name="timeout"></T|DSML|parameter>`,
+		`  </T|DSML|invoke>`,
+		`  </T|DSML|tool_calls>`,
 	}, "\n")
 	calls := collectToolCallsForChunks(t, splitEveryNRBytes(chunk, 8), []string{"TaskOutput"})
 	if len(calls) != 1 {
@@ -811,8 +811,8 @@ func TestFindPartialXMLToolTagStart(t *testing.T) {
 		{"partial_tool_calls", "Hello <tool_ca", 6},
 		{"partial_dsml_trailing_pipe", "Hello <|DSML|tool_calls|", 6},
 		{"partial_dsml_extra_leading_less_than", "Hello <<|DSML|tool_calls", 6},
-		{"partial_arbitrary_prefix_before_dsml", "Hello <T｜DS", 6},
-		{"partial_arbitrary_prefix_after_dsml_pipe", "Hello <T｜DSML｜", 6},
+		{"partial_arbitrary_prefix_before_dsml", "Hello <T|DS", 6},
+		{"partial_arbitrary_prefix_after_dsml_pipe", "Hello <T|DSML|", 6},
 		{"partial_invoke", "Hello <inv", 6},
 		{"bare_tool_call_not_held", "Hello <tool_name", -1},
 		{"partial_lt_only", "Text <", 5},
@@ -1091,7 +1091,7 @@ func TestProcessToolSieveRepairsMissingOpeningWrapperWithoutLeakingInvokeText(t 
 	}
 }
 
-// Test fullwidth pipe variant: <｜tool_calls> (U+FF5C) should be buffered and parsed.
+// Test escaped U+FF5C pipe variant: <\uff5ctool_calls> should be buffered and parsed.
 func TestProcessToolSieveFullwidthPipeVariantDoesNotLeak(t *testing.T) {
 	var state State
 	chunks := []string{
@@ -1115,19 +1115,19 @@ func TestProcessToolSieveFullwidthPipeVariantDoesNotLeak(t *testing.T) {
 	}
 
 	if strings.Contains(textContent, "invoke") || strings.Contains(textContent, "execute_command") {
-		t.Fatalf("fullwidth pipe variant leaked to text: %q", textContent)
+		t.Fatalf("escaped U+FF5C pipe variant leaked to text: %q", textContent)
 	}
 	if toolCalls != 1 {
-		t.Fatalf("expected one tool call from fullwidth pipe variant, got %d events=%#v", toolCalls, events)
+		t.Fatalf("expected one tool call from escaped U+FF5C pipe variant, got %d events=%#v", toolCalls, events)
 	}
 }
 
-// Test <｜DSML|tool_calls> with DSML invoke/parameter tags should buffer the
+// Test <|DSML|tool_calls> with DSML invoke/parameter tags should buffer the
 // wrapper instead of leaking it before the block is complete.
 func TestProcessToolSieveFullwidthDSMLPrefixVariantDoesNotLeak(t *testing.T) {
 	var state State
 	chunks := []string{
-		"<｜DSML|tool",
+		"<|DSML|tool",
 		"_calls>\n",
 		"<|DSML|invoke name=\"Bash\">\n",
 		"<|DSML|parameter name=\"command\"><![CDATA[ls -la /Users/aq/Desktop/myproject/ds2api/]]></|DSML|parameter>\n",
@@ -1232,12 +1232,12 @@ func TestProcessToolSieveDSMLBarePrefixVariantDoesNotLeak(t *testing.T) {
 func TestProcessToolSieveCJKAngleDSMDriftDoesNotLeak(t *testing.T) {
 	var state State
 	chunks := []string{
-		"<DSM｜tool_calls>\n",
-		"<DSM｜invoke name=\"Bash\">\n",
-		"<DSM｜parameter name=\"description\"｜>〈![CDATA[Check tracking branch status]]〉〈/DSM｜parameter〉\n",
-		"<DSM｜parameter name=\"command\"｜>〈![CDATA[git status -b --short]]〉〈/DSM｜parameter〉\n",
-		"〈/DSM｜invoke〉\n",
-		"〈/DSM｜tool_calls〉",
+		"<DSM|tool_calls>\n",
+		"<DSM|invoke name=\"Bash\">\n",
+		"<DSM|parameter name=\"description\"|>〈![CDATA[Check tracking branch status]]〉〈/DSM|parameter〉\n",
+		"<DSM|parameter name=\"command\"|>〈![CDATA[git status -b --short]]〉〈/DSM|parameter〉\n",
+		"〈/DSM|invoke〉\n",
+		"〈/DSM|tool_calls〉",
 	}
 	var events []Event
 	for _, c := range chunks {
@@ -1338,7 +1338,7 @@ func TestProcessToolSieveIdeographicCommaDSMLDriftDoesNotLeak(t *testing.T) {
 
 func TestProcessToolSieveParsesFullwidthClosingSlashAndKeepsSuffixText(t *testing.T) {
 	var state State
-	chunk := `<｜DSML｜tool_calls><｜DSML｜invoke name="execute_code"><｜DSML｜parameter name="code"><![CDATA[print("hi")]]></｜DSML｜parameter></｜DSML｜invoke><／DSML｜tool_calls> sao cụm này lại đc trả là 1 message`
+	chunk := `<|DSML|tool_calls><|DSML|invoke name="execute_code"><|DSML|parameter name="code"><![CDATA[print("hi")]]></|DSML|parameter></|DSML|invoke><／DSML|tool_calls> sao cụm này lại đc trả là 1 message`
 	events := ProcessChunk(&state, chunk, []string{"execute_code"})
 	events = append(events, Flush(&state, []string{"execute_code"})...)
 
@@ -1365,7 +1365,7 @@ func TestProcessToolSieveParsesFullwidthClosingSlashAndKeepsSuffixText(t *testin
 
 func TestProcessToolSieveParsesSentencePieceSeparatorAndFullwidthTerminator(t *testing.T) {
 	var state State
-	chunk := `<｜DSML▁tool_calls｜><｜DSML▁invoke▁name="execute_code"><｜DSML▁parameter▁name="code"><![CDATA[print("hi")]]></｜DSML▁parameter></｜DSML▁invoke></｜DSML▁tool_calls＞ suffix`
+	chunk := `<|DSML▁tool_calls|><|DSML▁invoke▁name="execute_code"><|DSML▁parameter▁name="code"><![CDATA[print("hi")]]></|DSML▁parameter></|DSML▁invoke></|DSML▁tool_calls＞ suffix`
 	events := ProcessChunk(&state, chunk, []string{"execute_code"})
 	events = append(events, Flush(&state, []string{"execute_code"})...)
 
@@ -1392,7 +1392,7 @@ func TestProcessToolSieveParsesSentencePieceSeparatorAndFullwidthTerminator(t *t
 
 func TestProcessToolSieveParsesFullwidthOpeningDelimiterAndUnicodeAttributes(t *testing.T) {
 	var state State
-	chunk := `＜｜DSML　tool_calls＞＜｜DSML　invoke　name＝“execute_code”＞＜｜DSML　parameter　name＝“code”＞<![CDATA[print("hi")]]>＜／DSML｜parameter＞＜／DSML｜invoke＞＜／DSML｜tool_calls＞ suffix`
+	chunk := `＜|DSML　tool_calls＞＜|DSML　invoke　name＝“execute_code”＞＜|DSML　parameter　name＝“code”＞<![CDATA[print("hi")]]>＜／DSML|parameter＞＜／DSML|invoke＞＜／DSML|tool_calls＞ suffix`
 	events := ProcessChunk(&state, chunk, []string{"execute_code"})
 	events = append(events, Flush(&state, []string{"execute_code"})...)
 

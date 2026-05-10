@@ -67,7 +67,11 @@ func (m *testGeminiDS) GetPow(_ context.Context, _ *auth.RequestAuth, _ int) (st
 //nolint:unused // reserved test double for native Gemini DS-call path coverage.
 func (m *testGeminiDS) UploadFile(_ context.Context, _ *auth.RequestAuth, req dsclient.UploadFileRequest, _ int) (*dsclient.UploadFileResult, error) {
 	m.uploadCalls = append(m.uploadCalls, req)
-	return &dsclient.UploadFileResult{ID: "file-gemini-history"}, nil
+	id := "file-gemini-history"
+	if len(m.uploadCalls) > 1 {
+		id = "file-gemini-tools"
+	}
+	return &dsclient.UploadFileResult{ID: id}, nil
 }
 
 //nolint:unused // reserved test double for native Gemini DS-call path coverage.

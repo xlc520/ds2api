@@ -131,14 +131,14 @@ func TestParseToolCallsRejectsCamelPrefixedToolMarkupLookalike(t *testing.T) {
 }
 
 func TestParseToolCallsSupportsFullwidthDSMLShell(t *testing.T) {
-	text := `<ｄＳＭＬ｜tool_calls>
-  <ｄＳＭＬ｜invoke name="Read">
-    <ｄＳＭＬ｜parameter name="file_path"＞<![CDATA[/Users/aq/Desktop/myproject/Personal_Blog/README.md]]＞</ｄＳＭＬ｜parameter>
-  </ｄＳＭＬ｜invoke>
-  <ｄＳＭＬ｜invoke name="Read">
-    <ｄＳＭＬ｜parameter name="file_path"＞<![CDATA[/Users/aq/Desktop/myproject/Personal_Blog/index.html]]＞</ｄＳＭＬ｜parameter>
-  </ｄＳＭＬ｜invoke>
-</ｄＳＭＬ｜tool_calls>`
+	text := `<ｄＳＭＬ|tool_calls>
+  <ｄＳＭＬ|invoke name="Read">
+    <ｄＳＭＬ|parameter name="file_path"＞<![CDATA[/Users/aq/Desktop/myproject/Personal_Blog/README.md]]＞</ｄＳＭＬ|parameter>
+  </ｄＳＭＬ|invoke>
+  <ｄＳＭＬ|invoke name="Read">
+    <ｄＳＭＬ|parameter name="file_path"＞<![CDATA[/Users/aq/Desktop/myproject/Personal_Blog/index.html]]＞</ｄＳＭＬ|parameter>
+  </ｄＳＭＬ|invoke>
+</ｄＳＭＬ|tool_calls>`
 	calls := ParseToolCalls(text, []string{"Read"})
 	if len(calls) != 2 {
 		t.Fatalf("expected two fullwidth DSML calls, got %#v", calls)
@@ -152,20 +152,20 @@ func TestParseToolCallsSupportsFullwidthDSMLShell(t *testing.T) {
 }
 
 func TestParseToolCallsSupportsCJKAngleDSMDrift(t *testing.T) {
-	text := `<DSM｜tool_calls>
-<DSM｜invoke name="Bash">
-<DSM｜parameter name="description"｜>〈![CDATA[Show commits on local dev not on origin/dev]]〉〈/DSM｜parameter〉
-<DSM｜parameter name="command"｜>〈![CDATA[git log --oneline origin/dev..dev]]〉〈/DSM｜parameter〉
-〈/DSM｜invoke〉
-<DSM｜invoke name="Bash">
-<DSM｜parameter name="description"｜>〈![CDATA[Show commits on origin/dev not on local dev]]〉〈/DSM｜parameter〉
-<DSM｜parameter name="command"｜>〈![CDATA[git log --oneline dev..origin/dev]]〉〈/DSM｜parameter〉
-〈/DSM｜invoke〉
-<DSM｜invoke name="Bash">
-<DSM｜parameter name="description"｜>〈![CDATA[Check tracking branch status]]〉〈/DSM｜parameter〉
-<DSM｜parameter name="command"｜>〈![CDATA[git status -b --short]]〉〈/DSM｜parameter〉
-〈/DSM｜invoke〉
-〈/DSM｜tool_calls〉`
+	text := `<DSM|tool_calls>
+<DSM|invoke name="Bash">
+<DSM|parameter name="description"|>〈![CDATA[Show commits on local dev not on origin/dev]]〉〈/DSM|parameter〉
+<DSM|parameter name="command"|>〈![CDATA[git log --oneline origin/dev..dev]]〉〈/DSM|parameter〉
+〈/DSM|invoke〉
+<DSM|invoke name="Bash">
+<DSM|parameter name="description"|>〈![CDATA[Show commits on origin/dev not on local dev]]〉〈/DSM|parameter〉
+<DSM|parameter name="command"|>〈![CDATA[git log --oneline dev..origin/dev]]〉〈/DSM|parameter〉
+〈/DSM|invoke〉
+<DSM|invoke name="Bash">
+<DSM|parameter name="description"|>〈![CDATA[Check tracking branch status]]〉〈/DSM|parameter〉
+<DSM|parameter name="command"|>〈![CDATA[git status -b --short]]〉〈/DSM|parameter〉
+〈/DSM|invoke〉
+〈/DSM|tool_calls〉`
 
 	calls := ParseToolCalls(text, []string{"Bash"})
 	if len(calls) != 3 {
@@ -1203,7 +1203,7 @@ func TestFindMatchingToolMarkupCloseBoundaryConditions(t *testing.T) {
 }
 
 func TestParseToolCallsSupportsDSMLShellWithFullwidthClosingSlash(t *testing.T) {
-	text := `<｜DSML｜tool_calls><｜DSML｜invoke name="execute_code"><｜DSML｜parameter name="code"><![CDATA[print("hi")]]></｜DSML｜parameter></｜DSML｜invoke><／DSML｜tool_calls>`
+	text := `<|DSML|tool_calls><|DSML|invoke name="execute_code"><|DSML|parameter name="code"><![CDATA[print("hi")]]></|DSML|parameter></|DSML|invoke><／DSML|tool_calls>`
 	calls := ParseToolCalls(text, []string{"execute_code"})
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 DSML call with fullwidth closing slash, got %#v", calls)
@@ -1214,7 +1214,7 @@ func TestParseToolCallsSupportsDSMLShellWithFullwidthClosingSlash(t *testing.T) 
 }
 
 func TestParseToolCallsSupportsDSMLShellWithSentencePieceSeparatorAndFullwidthGT(t *testing.T) {
-	text := `<｜DSML▁tool_calls｜><｜DSML▁invoke▁name="execute_code"><｜DSML▁parameter▁name="code"><![CDATA[print("hi")]]></｜DSML▁parameter></｜DSML▁invoke></｜DSML▁tool_calls＞`
+	text := `<|DSML▁tool_calls|><|DSML▁invoke▁name="execute_code"><|DSML▁parameter▁name="code"><![CDATA[print("hi")]]></|DSML▁parameter></|DSML▁invoke></|DSML▁tool_calls＞`
 	calls := ParseToolCalls(text, []string{"execute_code"})
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 DSML call with sentencepiece separator and fullwidth terminator, got %#v", calls)
@@ -1225,7 +1225,7 @@ func TestParseToolCallsSupportsDSMLShellWithSentencePieceSeparatorAndFullwidthGT
 }
 
 func TestParseToolCallsSupportsDSMLShellWithFullwidthLTUnicodeSpaceAndFullwidthAttributes(t *testing.T) {
-	text := `＜｜DSML　tool_calls＞＜｜DSML　invoke　name＝“execute_code”＞＜｜DSML　parameter　name＝“code”＞<![CDATA[print("hi")]]>＜／DSML｜parameter＞＜／DSML｜invoke＞＜／DSML｜tool_calls＞`
+	text := `＜|DSML　tool_calls＞＜|DSML　invoke　name＝“execute_code”＞＜|DSML　parameter　name＝“code”＞<![CDATA[print("hi")]]>＜／DSML|parameter＞＜／DSML|invoke＞＜／DSML|tool_calls＞`
 	calls := ParseToolCalls(text, []string{"execute_code"})
 	if len(calls) != 1 {
 		t.Fatalf("expected 1 DSML call with fullwidth opening delimiter and Unicode attribute confusables, got %#v", calls)

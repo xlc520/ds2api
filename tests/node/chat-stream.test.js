@@ -646,7 +646,7 @@ test('parseChunkForContent strips citation and reference markers from fragment c
 test('parseChunkForContent strips leaked thought control markers from content', () => {
   const chunk = {
     p: 'response/content',
-    v: '<｜▁of▁thought｜>A<| of_thought |>B<| end_of_thought |>C',
+    v: '<|▁of▁thought|>A<| of_thought |>B<| end_of_thought |>C',
   };
   const parsed = parseChunkForContent(chunk, false, 'text');
   assert.equal(parsed.finished, false);
